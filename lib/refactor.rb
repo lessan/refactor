@@ -4,6 +4,17 @@ require 'fileutils'
 require_relative 'refactor/version'
 
 module Refactor
+  def self.highlight_changes(path, text, regex)
+    line_num = 0
+    text.each_line do |old_line|
+      new_line = old_line.gsub(regex, "\e[33m\\0\e[0m")
+      unless new_line == old_line
+        puts "\e[36m#{path}:#{line_num}\e[0m #{new_line}"
+      end
+      line_num += 1
+    end
+  end
+
   def self.run(from, to)
     from_camelized = from.camelize
     from_dashed = from.dasherize
@@ -11,11 +22,13 @@ module Refactor
     from_underscored = from.underscore
     to_camelized = to.camelize
     to_dashed = to.dasherize
+    to_humanized = to.humanize
     to_underscored = to.underscore
 
     camelized_regex = /(?<=\b|_)#{Regexp.quote(from_camelized)}(?=\b|_)/
     dashed_regex = /(?<=\b|_)#{Regexp.quote(from_dashed)}(?=\b|_)/
     underscored_regex = /(?<=\b|_)#{Regexp.quote(from_underscored)}(?=\b|_)/
+    humanized_regex = /#{Regexp.quote(from_humanized)}/i
     # TODO handle TitleCase
 
     # all files in current directory
@@ -52,23 +65,18 @@ module Refactor
         old_text.encode!('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
 
         new_text = old_text.dup
+        highlight_changes(new_path, new_text, camelized_regex)
         new_text.gsub!(camelized_regex, to_camelized)
+        highlight_changes(new_path, new_text, dashed_regex)
         new_text.gsub!(dashed_regex, to_dashed)
+        highlight_changes(new_path, new_text, underscored_regex)
         new_text.gsub!(underscored_regex, to_underscored)
+        highlight_changes(new_path, new_text, humanized_regex)
+        new_text.gsub!(humanized_regex, to_humanized)
 
         unless new_text == old_text
           # rewrite existing file
           File.write(new_path, new_text)
-        end
-
-        # show possible matches in body
-        line_num = 0
-        new_text.each_line do |old_line|
-          new_line = old_line.gsub(/#{Regexp.quote(from_humanized)}/i, "\e[33m\\0\e[0m")
-          unless new_line == old_line
-            puts "\e[36m#{new_path}:#{line_num}\e[0m #{new_line}"
-          end
-          line_num += 1
         end
       end
     end
