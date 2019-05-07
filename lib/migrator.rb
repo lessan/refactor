@@ -17,7 +17,7 @@ module Migrator
     virtus_model_replace = " < Model\n"
 
     enum_class_regex = /< VirtusAnotherEnum::JsonableEnum/
-    enum_class_replace = '< AnotherEnum'
+    enum_class_replace = '< JsonableEnum'
 
     string_regex = /(attribute :[a-z_]+), String/
     string_replace = '\1, ::Types::String.optional.meta(omittable: true)'
@@ -32,7 +32,7 @@ module Migrator
     time_replace = '\1, ::Types::Time.optional.meta(omittable: true)'
 
     date_regex = /(attribute :[a-z_]+), Date/
-    date_replace = '\1, ::Types::Date.optional.meta(omittable: true)'
+    date_replace = '\1, ::Types::JSON::Date.optional.meta(omittable: true)'
 
     integer_regex = /(attribute :[a-z_]+), Integer/
     integer_replace = '\1, ::Types::Integer.optional.meta(omittable: true)'
@@ -53,16 +53,16 @@ module Migrator
     array_default_replace = '::Types::Array.of(\1).default([].freeze).meta(omittable: true)'
 
     array_regex = /Array\[(.+)\]/
-    array_replace = '::Types::Array.of(\1).meta(omittable: true)'
+    array_replace = '::Types::Array.of(\1).default([].freeze).meta(omittable: true)'
 
     enum_type_default_regex = /VirtusAnotherEnum::Attribute\[([A-Za-z:]+)\], default: ->\(_,_\) { ([A-Za-z:\.]+) }/
-    enum_type_default_replace = '::Types::Strict::String.default(\2.code.freeze).enum(*\1.codes).meta(omittable: true)'
+    enum_type_default_replace = '::Types::Constructor(\1){ |i| \1[i] }.default(\2.freeze).meta(omittable: true)'
 
     enum_type_required_regex = /VirtusAnotherEnum::Attribute\[([A-Za-z:]+)\], presence: true/
-    enum_type_required_replace = '::Types::Strict::String.enum(*\1.codes)'
+    enum_type_required_replace = '::Types::Constructor(\1){ |i| \1[i] }'
 
     enum_type_regex = /VirtusAnotherEnum::Attribute\[([A-Za-z:]+)\]/
-    enum_type_replace = '::Types::Strict::String.enum(*\1.codes).meta(omittable: true)'
+    enum_type_replace = '::Types::Constructor(\1){ |i| \1[i] }.meta(omittable: true)'
 
     default_nil_regex = /, default: nil/
     default_nil_replace = ''
@@ -71,7 +71,7 @@ module Migrator
     custom_model_replace = "\\1, \\2.optional.meta(omittable: true)\n"
 
     moolah_regex = /(attribute :[a-z_]+), Moolah::Money\.optional\.meta\(omittable: true\)/
-    moolah_replace = "\\1, Moolah::Money"
+    moolah_replace = "\\1, ::Types::Constructor(Moolah::Money).meta(omittable: true)"
 
     securerandom_regex = /\(SecureRandom\.uuid\.freeze\)/
     securerandom_replace = '{ SecureRandom.uuid }'
